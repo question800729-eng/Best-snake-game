@@ -1,0 +1,214 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abhinav's Snake Game 🐍</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      font-family: 'Arial', sans-serif;
+      color: #fff;
+      user-select: none;
+    }
+    canvas {
+      border: 3px solid #ff6b6b;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(255,107,107,0.3);
+      background: #000;
+    }
+    .ui {
+    margin-top: 20px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .score { color: #00ff88; }
+    .high-score { color: #ffdd44; margin-left: 20px; }
+    .game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      display: none;
+      border: 2px solid #ff6b6b;
+    }
+    .restart-btn {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background 0.3s;
+    }
+    .restart-btn:hover { background: #ff5252; }
+    .instructions {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="instructions">Arrow Keys ya WASD se khelo! 🐍🍎</div>
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+  <div class="ui">
+    <span class="score" id="score">Score: 0</span>
+    <span class="high-score" id="highScore">High: 0</span>
+  </div>
+  
+  <div class="game-over" id="gameOver">
+    <h2>Game Over! 💀</h2>
+    <p id="finalScore"></p>
+    <button class="restart-btn" onclick="restartGame()">Khel Lo Phir Se!</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const highScoreEl = document.getElementById('highScore');
+    const gameOverEl = document.getElementById('gameOver');
+    const finalScoreEl = document.getElementById('finalScore');
+
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    let snake = [
+      {x: 10, y: 10}
+    ];
+    let food = {};
+    let dx = 0;
+    let dy = 0;
+    let score = 0;
+    let highScore = localStorage.getItem('snakeHighScore') || 0;
+    highScoreEl.textContent = `High: ${highScore}`;
+    let gameRunning = true;
+  // Random food position
+    function randomFood() {
+      food = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+      };
+    }
+    randomFood();
+
+    // Draw game
+    function drawGame() {
+      // Clear canvas
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw snake
+      for (let segment of snake) {
+        ctx.fillStyle = 'lime';
+        ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+      }
+
+      // Draw food
+      ctx.fillStyle = 'red';
+      ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+    }
+
+    // Update game logic
+    function update() {
+      if (!gameRunning) return;
+
+      const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+      // Wall collision
+      if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+        gameOver();
+        return;
+      }
+
+      // Self collision
+      for (let segment of snake) {
+        if (head.x === segment.x && head.y === segment.y) {
+          gameOver();
+          return;
+        }
+      }
+
+      snake.unshift(head);
+
+      // Eat food
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        scoreEl.textContent = `Score: ${score}`;
+        randomFood();
+      } else {
+        snake.pop();
+      }
+    }
+// Game loop
+    function gameLoop() {
+      update();
+      drawGame();
+    }
+
+    // Game over
+    function gameOver() {
+      gameRunning = false;
+      finalScoreEl.textContent = `Final Score: ${score}`;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('snakeHighScore', highScore);
+        highScoreEl.textContent = `High: ${highScore}`;
+      }
+      gameOverEl.style.display = 'block';
+    }
+
+    // Restart
+    function restartGame() {
+      snake = [{x: 10, y: 10}];
+      dx = 0;
+      dy = 0;
+      score = 0;
+      scoreEl.textContent = 'Score: 0';
+      gameRunning = true;
+      randomFood();
+      gameOverEl.style.display = 'none';
+    }
+    
+        // Controls
+    document.addEventListener('keydown', (e) => {
+      if (!gameRunning) return;
+      switch(e.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A': if (dx !== 1) { dx = -1; dy = 0; } break;
+        case 'ArrowUp':
+        case 'w':
+        case 'W': if (dy !== 1) { dx = 0; dy = -1; } break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D': if (dx !== -1) { dx = 1; dy = 0; } break;
+        case 'ArrowDown':
+        case 's':
+        case 'S': if (dy !== -1) { dx = 0; dy = 1; } break;
+      }
+    });
+
+    // Start game loop
+    setInterval(gameLoop, 150); // Speed: kam karo to fast
+  </script>
+</body>
+</html>
